@@ -1,0 +1,77 @@
+project 1:=
+#!/bin/bash
+yum update -y
+amazon-linux-extras install -y php8.0 mariadb10.5
+yum install -y httpd git
+systemctl start httpd
+systemctl enable httpd
+usermod -a -G apache ec2-user
+chown -R ec2-user:apache /var/www
+chmod 2775 /var/www
+find /var/www -type d -exec chmod 2775 {} \;
+find /var/www -type f -exec chmod 0664 {} \;
+echo "<?php phpinfo(); ?>" > /var/www/html/phpinfo.php
+endpoint:-database-1.c3roqvrcfw4l.ap-south-1.rds.amazonaws.com
+password:=9701067223
+
+for connection:=mysql -u admin -p'9701067223' -h database-1.c3roqvrcfw4l.ap-south-1.rds.amazonaws.com;
+commands:=
+1.create database employees_db;
+2.show databases;
+3. use employees_db;
+4.CREATE TABLE employees (
+id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+name VARCHAR(100) NOT NULL,
+address VARCHAR(255) NOT NULL,
+salary INT(10) NOT NULL
+);
+5.show tables;
+6.exit
+	a. github.com/gnataraj/php-mysql
+	b.(fork,config,edit,comitte changes)
+7.rm /var/www/html/phpinfo.php;
+8.y
+9.git clone https://github.com/NaveenE2001/php-mysql.git /var/www/html/;
+10.mysql -u admin -p'9701067223' -h database-1.c3roqvrcfw4l.ap-south-1.rds.amazonaws.com;
+	a.exit
+	b.(again connect by the ec2 instance)
+	c.mysql -u admin -p'9701067223' -h database-1.c3roqvrcfw4l.ap-south-1.rds.amazonaws.com;
+11.use employees_db;
+12.select *from employee;
+
+project-3:
+#!/bin/bash
+yum update -y
+yum install -y httpd 
+systemctl start httpd
+systemctl enable httpd
+echo "<h1> Hello World from $(hostname -f) </h1>" > /var/www/html/index.html 
+
+project-2:=
+ in upload s3 bucket file (save file name as employees.json)
+{
+ "emp_id": "1",
+ "name": "Bob",
+ "location": "US"
+}
+ in lamda in the place of code cancale the privous add the below
+import boto3
+import json
+import ast
+s3_client = boto3.client('s3')
+dynamodb_client = boto3.resource('dynamodb')
+def lambda_handler(event, context):
+    # First we will fetch bucket name from event json object
+    bucket = event['Records'][0]['s3']['bucket']['name']
+    # Now we will fetch file name which is uploaded in s3 bucket from event json object
+    json_file_name = event['Records'][0]['s3']['object']['key']
+    #Lets call get_object() function which Retrieves objects from Amazon S3 as dictonary
+    json_object = s3_client.get_object(Bucket=bucket,Key=json_file_name)
+    # Lets decode the json object returned by function which will retun string
+    file_reader = json_object['Body'].read().decode("utf-8")
+    # We will now change this json string to dictonary
+    file_reader = ast.literal_eval(file_reader)
+    # As we have retrieved the dictionary we will put it in dynamodb table
+    table = dynamodb_client.Table('employees')
+    table.put_item(Item=file_reader)
+    return 'success'
